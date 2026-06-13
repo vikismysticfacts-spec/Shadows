@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OK Computer — Визуальная новелла</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #0a0a0a;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #fff;
+  user-select: none;
+}
+#app {
+  width: 100%; height: 100%;
+  position: relative;
+}
+#title-screen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background-size: cover; background-position: center;
+  z-index: 100;
+  transition: opacity 0.8s;
+}
+#title-screen.hidden { opacity: 0; pointer-events: none; }
+.title-box {
+  text-align: center;
+  background: rgba(0,0,0,0.55);
+  padding: 40px 60px;
+  border-radius: 12px;
+  backdrop-filter: blur(6px);
+}
+.title-box h1 {
+  font-size: 3.5rem;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  text-shadow: 0 0 20px rgba(255,255,255,0.3);
+}
+.title-box p {
+  font-size: 1.1rem;
+  color: #aaa;
+  margin-bottom: 30px;
+}
+.menu-btn {
+  display: block;
+  width: 220px;
+  margin: 8px auto;
+  padding: 12px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.menu-btn:hover {
+  background: rgba(255,255,255,0.25);
+  border-color: rgba(255,255,255,0.5);
+}
+#game-screen {
+  position: absolute; inset: 0;
+  display: none;
+  z-index: 10;
+}
+#game-screen.active { display: block; }
+#background {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  transition: opacity 0.6s;
+}
+#rain {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+#rain.active { opacity: 1; }
+.drop {
+  position: absolute;
+  width: 1px; height: 15px;
+  background: rgba(200,220,255,0.4);
+  animation: fall linear infinite;
+}
+@keyframes fall {
+  to { transform: translateY(110vh); }
+}
+#characters-layer {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 75%;
+  pointer-events: none;
+}
+.char-sprite {
+  position: absolute;
+  bottom: 0;
+  height: 85%;
+  max-height: 700px;
+  filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+  transition: all 0.5s ease;
+  opacity: 0;
+}
+.char-sprite.visible { opacity: 1; }
+.char-sprite.left { left: 5%; }
+.char-sprite.center { left: 50%; transform: translateX(-50%); }
+.char-sprite.right { right: 5%; }
+#text-box {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding: 24px 32px 32px;
+  min-height: 180px;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+#speaker-name {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  letter-spacing: 0.5px;
+  min-height: 1.4em;
+}
+#dialogue-text {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: #eee;
+  min-height: 3.2em;
+}
+#click-hint {
+  position: absolute; bottom: 12px; right: 24px;
+  font-size: 0.75rem; color: #888;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+#choices-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 14px;
+  z-index: 50;
+  backdrop-filter: blur(4px);
+}
+#choices-overlay.active { display: flex; }
+.choice-btn {
+  width: 420px; max-width: 90%;
+  padding: 16px 24px;
+  background: rgba(20,20,30,0.9);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  font-size: 1.1rem;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+  text-align: center;
+}
+.choice-btn:hover {
+  background: rgba(40,40,60,0.95);
+  border-color: rgba(255,255,255,0.4);
+  transform: translateY(-2px);
+}
+#settings-screen {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(10px);
+}
+#settings-screen.active { display: flex; }
+.settings-panel {
+  background: rgba(20,20,25,0.95);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 32px;
+  width: 400px; max-width: 90%;
+}
+.settings-panel h2 {
+  margin-bottom: 24px;
+  text-align: center;
+  font-weight: 400;
+  letter-spacing: 2px;
+}
+.setting-row {
+  display: flex; justify-content: space-between;
+  align-items: center;
+  margin: 14px 0;
+}
+.setting-row label { color: #bbb; }
+.setting-row input[type="range"] {
+  width: 160px;
+}
+.close-btn {
+  margin-top: 20px;
+  width: 100%;
+}
+#gallery-screen {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  z-index: 200;
+  overflow-y: auto;
+  padding: 40px 20px;
+}
+#gallery-screen.active { display: flex; }
+#gallery-screen h2 { margin-bottom: 24px; font-weight: 400; letter-spacing: 2px; }
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%; max-width: 1000px;
+}
+.gallery-item {
+  aspect-ratio: 16/9;
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
+  border: 2px solid rgba(255,255,255,0.1);
+  opacity: 0.4;
+  transition: opacity 0.3s;
+}
+.gallery-item.unlocked { opacity: 1; border-color: rgba(255,255,255,0.3); }
+#save-load-ui {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 180;
+}
+#save-load-ui.active { display: flex; }
+.slots-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+.slot-btn {
+  width: 140px; height: 90px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: 0.85rem;
+}
+.slot-btn:hover { background: rgba(255,255,255,0.15); }
+.slot-btn .slot-date { font-size: 0.7rem; color: #888; margin-top: 4px; }
+#hud {
+  position: absolute; top: 12px; right: 12px;
+  display: flex; gap: 8px;
+  z-index: 60;
+}
+.hud-btn {
+  width: 36px; height: 36px;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem;
+  transition: background 0.2s;
+}
+.hud-btn:hover { background: rgba(255,255,255,0.2); }
+#transition-overlay {
+  position: absolute; inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 40;
+  transition: opacity 0.6s;
+}
+#transition-overlay.active { opacity: 1; pointer-events: all; }
+@media (max-width: 640px) {
+  .title-box h1 { font-size: 2rem; }
+  .title-box { padding: 24px 30px; }
+  #text-box { padding: 16px 18px 24px; min-height: 140px; }
+  #dialogue-text { font-size: 1.05rem; }
+  .choice-btn { width: 90%; padding: 14px; font-size: 1rem; }
+  .char-sprite { height: 65%; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="title-screen">
+    <div class="title-box">
+      <h1>OK Computer</h1>
+      <p>Визуальная новелла</p>
+      <button class="menu-btn" onclick="startGame()">Начать игру</button>
+      <button class="menu-btn" onclick="showLoad()">Продолжить</button>
+      <button class="menu-btn" onclick="showGallery()">Галерея</button>
+      <button class="menu-btn" onclick="showSettings()">Настройки</button>
+    </div>
+  </div>
+  <div id="game-screen">
+    <div id="background"></div>
+    <div id="rain"></div>
+    <div id="characters-layer"></div>
+    <div id="transition-overlay"></div>
+    <div id="hud">
+      <button class="hud-btn" onclick="toggleSettings()" title="Настройки">⚙</button>
+      <button class="hud-btn" onclick="showSave()" title="Сохранить">💾</button>
+      <button class="hud-btn" onclick="showLoad()" title="Загрузить">📂</button>
+      <button class="hud-btn" onclick="backToTitle()" title="В меню">✕</button>
+    </div>
+    <div id="text-box" onclick="handleTextBoxClick()">
+      <div id="speaker-name"></div>
+      <div id="dialogue-text"></div>
+      <div id="click-hint">Кликните, чтобы продолжить</div>
+    </div>
+    <div id="choices-overlay"></div>
+  </div>
+  <div id="settings-screen">
+    <div class="settings-panel">
+      <h2>Настройки</h2>
+      <div class="setting-row">
+        <label>Скорость текста</label>
+        <input type="range" id="speed-range" min="10" max="100" value="40" oninput="updateSpeed(this.value)">
+      </div>
+      <div class="setting-row">
+        <label>Громкость музыки</label>
+        <input type="range" id="music-range" min="0" max="100" value="50" oninput="updateMusic(this.value)">
+      </div>
+      <div class="setting-row">
+        <label>Громкость звуков</label>
+        <input type="range" id="sfx-range" min="0" max="100" value="70" oninput="updateSfx(this.value)">
+      </div>
+      <button class="menu-btn close-btn" onclick="closeSettings()">Закрыть</button>
+    </div>
+  </div>
+  <div id="gallery-screen">
+    <h2>Галерея</h2>
+    <div class="gallery-grid" id="gallery-grid"></div>
+    <button class="menu-btn" style="margin-top:24px" onclick="closeGallery()">Назад</button>
+  </div>
+  <div id="save-load-ui">
+    <h2 id="sl-title">Сохранить</h2>
+    <div class="slots-grid" id="slots-grid"></div>
+    <button class="menu-btn" onclick="closeSaveLoad()">Отмена</button>
+  </div>
+</div>
+<script src="gameData.js"></script>
+<script>
+const state = {
+  currentScreen: 'title',
+  currentChapterId: 'ch1',
+  currentSceneId: 'ch1_scene1',
+  currentDialogueIndex: 0,
+  dissociation: 20,
+  trustGast: 10, trustHel: 0, trustShima: 5, trustBri: 0,
+  flags: {},
+  textSpeed: 40,
+  musicVolume: 0.5, sfxVolume: 0.7,
+  autoMode: false,
+  dialogueHistory: [],
+  unlockedCGs: [],
+  seenScenes: [],
+  showChoices: false,
+  isTyping: false,
+  isTransitioning: false
+};
+let typeInterval = null;
+function $(id) { return document.getElementById(id); }
+function findScene(sceneId) {
+  for (const ch of window.chapters || []) {
+    const sc = ch.scenes.find(s => s.id === sceneId);
+    if (sc) return { chapter: ch, scene: sc };
+  }
+  return null;
+}
+function findCharacter(id) {
+  return (window.characters || []).find(c => c.id === id);
+}
+function init() {
+  $('title-screen').style.backgroundImage = "url('backgrounds/bg_title.jpg')";
+  createRain();
+}
+function createRain() {
+  const rain = $('rain');
+  for (let i = 0; i < 60; i++) {
+    const drop = document.createElement('div');
+    drop.className = 'drop';
+    drop.style.left = Math.random() * 100 + '%';
+    drop.style.animationDuration = (0.5 + Math.random() * 0.7) + 's';
+    drop.style.animationDelay = Math.random() * 2 + 's';
+    rain.appendChild(drop);
+  }
+}
+function startGame() {
+  const saved = localStorage.getItem('vn_save_slot_0');
+  if (saved) {
+    try {
+      const data = JSON.parse(saved);
+      Object.assign(state, data);
+      state.currentScreen = 'game';
+    } catch(e) { resetToStart(); }
+  } else {
+    resetToStart();
+  }
+  enterGame();
+}
+function resetToStart() {
+  state.currentChapterId = 'ch1';
+  state.currentSceneId = 'ch1_scene1';
+  state.currentDialogueIndex = 0;
+  state.dissociation = 20;
+  state.trustGast = 10; state.trustHel = 0; state.trustShima = 5; state.trustBri = 0;
+  state.flags = {};
+  state.dialogueHistory = [];
+  state.unlockedCGs = [];
+  state.seenScenes = [];
+}
+function enterGame() {
+  $('title-screen').classList.add('hidden');
+  $('game-screen').classList.add('active');
+  state.currentScreen = 'game';
+  renderScene();
+}
+function backToTitle() {
+  clearTypewriter();
+  $('game-screen').classList.remove('active');
+  $('title-screen').classList.remove('hidden');
+  state.currentScreen = 'title';
+}
+function renderScene() {
+  const found = findScene(state.currentSceneId);
+  if (!found) return;
+  const { chapter, scene } = found;
+  const bg = $('background');
+  if (scene.background) {
+    bg.style.opacity = '0';
+    setTimeout(() => {
+      bg.style.backgroundImage = "url('" + scene.background.replace(/^\//, '') + "')";
+      bg.style.opacity = '1';
+    }, 300);
+  }
+  $('rain').classList.toggle('active', !!scene.rain);
+  const layer = $('characters-layer');
+  layer.innerHTML = '';
+  if (scene.characters) {
+    scene.characters.forEach(cfg => {
+      const char = findCharacter(cfg.id);
+      if (!char) return;
+      const img = document.createElement('img');
+      img.className = 'char-sprite ' + cfg.position + ' visible';
+      let src = char.sprites[cfg.emotion] || char.sprites.neutral;
+      src = src.replace(/^\//, '');
+      img.src = src;
+      layer.appendChild(img);
+    });
+  }
+  state.currentDialogueIndex = 0;
+  state.showChoices = false;
+  $('choices-overlay').classList.remove('active');
+  $('choices-overlay').innerHTML = '';
+  if (!state.seenScenes.includes(scene.id)) state.seenScenes.push(scene.id);
+  showDialogue();
+}
+function showDialogue() {
+  const found = findScene(state.currentSceneId);
+  if (!found) return;
+  const scene = found.scene;
+  const dialogue = scene.dialogues[state.currentDialogueIndex];
+  if (!dialogue) {
+    if (scene.choices && scene.choices.length > 0) {
+      showChoices(scene.choices);
+    }
+    return;
+  }
+  const speakerEl = $('speaker-name');
+  const textEl = $('dialogue-text');
+  if (dialogue.speaker) {
+    const char = dialogue.characterId ? findCharacter(dialogue.characterId) : null;
+    speakerEl.textContent = dialogue.speaker;
+    speakerEl.style.color = char ? char.color : '#e0e0e0';
+  } else {
+    speakerEl.textContent = '';
+  }
+  clearTypewriter();
+  state.isTyping = true;
+  textEl.textContent = '';
+  let i = 0;
+  const speed = Math.max(5, 110 - state.textSpeed);
+  typeInterval = setInterval(() => {
+    if (i >= dialogue.text.length) {
+      clearTypewriter();
+      return;
+    }
+    textEl.textContent += dialogue.text[i];
+    i++;
+  }, speed);
+}
+function clearTypewriter() {
+  if (typeInterval) clearInterval(typeInterval);
+  typeInterval = null;
+  state.isTyping = false;
+}
+function handleTextBoxClick() {
+  if (state.isTyping) {
+    const found = findScene(state.currentSceneId);
+    if (found) {
+      const dialogue = found.scene.dialogues[state.currentDialogueIndex];
+      if (dialogue) $('dialogue-text').textContent = dialogue.text;
+    }
+    clearTypewriter();
+    return;
+  }
+  if (state.showChoices) return;
+  const found = findScene(state.currentSceneId);
+  if (!found) return;
+  const scene = found.scene;
+  if (state.currentDialogueIndex < scene.dialogues.length - 1) {
+    state.currentDialogueIndex++;
+    const prev = scene.dialogues[state.currentDialogueIndex - 1];
+    state.dialogueHistory.push({ speaker: prev.speaker, text: prev.text });
+    showDialogue();
+  } else if (scene.choices && scene.choices.length > 0) {
+    showChoices(scene.choices);
+  }
+}
+function showChoices(choices) {
+  state.showChoices = true;
+  const overlay = $('choices-overlay');
+  overlay.innerHTML = '';
+  overlay.classList.add('active');
+  choices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = choice.text;
+    btn.onclick = () => selectChoice(choice);
+    overlay.appendChild(btn);
+  });
+}
+function selectChoice(choice) {
+  $('choices-overlay').classList.remove('active');
+  state.showChoices = false;
+  if (choice.effects) {
+    if (choice.effects.dissociation !== undefined) state.dissociation = Math.max(0, Math.min(100, state.dissociation + choice.effects.dissociation));
+    if (choice.effects.trustGast !== undefined) state.trustGast = Math.max(0, Math.min(100, state.trustGast + choice.effects.trustGast));
+    if (choice.effects.trustHel !== undefined) state.trustHel = Math.max(0, Math.min(100, state.trustHel + choice.effects.trustHel));
+    if (choice.effects.trustShima !== undefined) state.trustShima = Math.max(0, Math.min(100, state.trustShima + choice.effects.trustShima));
+    if (choice.effects.trustBri !== undefined) state.trustBri = Math.max(0, Math.min(100, state.trustBri + choice.effects.trustBri));
+    if (choice.effects.flags) Object.assign(state.flags, choice.effects.flags);
+  }
+  state.currentSceneId = choice.nextSceneId;
+  state.currentDialogueIndex = 0;
+  const trans = $('transition-overlay');
+  trans.classList.add('active');
+  setTimeout(() => {
+    renderScene();
+    setTimeout(() => trans.classList.remove('active'), 100);
+  }, 500);
+}
+function showSettings() {
+  $('settings-screen').classList.add('active');
+}
+function closeSettings() {
+  $('settings-screen').classList.remove('active');
+}
+function toggleSettings() {
+  $('settings-screen').classList.toggle('active');
+}
+function updateSpeed(v) { state.textSpeed = parseInt(v); }
+function updateMusic(v) { state.musicVolume = parseInt(v)/100; }
+function updateSfx(v) { state.sfxVolume = parseInt(v)/100; }
+function showGallery() {
+  const grid = $('gallery-grid');
+  grid.innerHTML = '';
+  const allScenes = [];
+  (window.chapters || []).forEach(ch => ch.scenes.forEach(s => {
+    if (s.background) allScenes.push({ id: s.id, bg: s.background });
+  }));
+  allScenes.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'gallery-item' + (state.seenScenes.includes(s.id) ? ' unlocked' : '');
+    div.style.backgroundImage = "url('" + s.bg.replace(/^\//, '') + "')";
+    grid.appendChild(div);
+  });
+  $('gallery-screen').classList.add('active');
+}
+function closeGallery() {
+  $('gallery-screen').classList.remove('active');
+}
+let slMode = 'save';
+function showSave() {
+  slMode = 'save';
+  $('sl-title').textContent = 'Сохранить';
+  renderSlots();
+  $('save-load-ui').classList.add('active');
+}
+function showLoad() {
+  slMode = 'load';
+  $('sl-title').textContent = 'Загрузить';
+  renderSlots();
+  $('save-load-ui').classList.add('active');
+}
+function closeSaveLoad() {
+  $('save-load-ui').classList.remove('active');
+}
+function renderSlots() {
+  const grid = $('slots-grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const key = 'vn_save_slot_' + i;
+    const data = localStorage.getItem(key);
+    const btn = document.createElement('button');
+    btn.className = 'slot-btn';
+    let label = 'Слот ' + (i+1);
+    let dateStr = '';
+    if (data) {
+      try {
+        const d = JSON.parse(data);
+        const date = new Date(d._savedAt || 0);
+        dateStr = d._savedAt ? date.toLocaleString() : 'Есть сохранение';
+      } catch(e) { dateStr = 'Есть сохранение'; }
+    } else {
+      dateStr = 'Пусто';
+    }
+    btn.innerHTML = '<span>' + label + '</span><span class="slot-date">' + dateStr + '</span>';
+    btn.onclick = () => {
+      if (slMode === 'save') doSave(i);
+      else doLoad(i);
+    };
+    grid.appendChild(btn);
+  }
+}
+function doSave(slot) {
+  const payload = {
+    currentChapterId: state.currentChapterId,
+    currentSceneId: state.currentSceneId,
+    currentDialogueIndex: state.currentDialogueIndex,
+    dissociation: state.dissociation,
+    trustGast: state.trustGast, trustHel: state.trustHel,
+    trustShima: state.trustShima, trustBri: state.trustBri,
+    flags: state.flags,
+    unlockedCGs: state.unlockedCGs,
+    seenScenes: state.seenScenes,
+    _savedAt: Date.now()
+  };
+  localStorage.setItem('vn_save_slot_' + slot, JSON.stringify(payload));
+  closeSaveLoad();
+}
+function doLoad(slot) {
+  const saved = localStorage.getItem('vn_save_slot_' + slot);
+  if (!saved) return;
+  try {
+    const data = JSON.parse(saved);
+    Object.assign(state, data);
+    delete state._savedAt;
+    state.currentScreen = 'game';
+    state.showChoices = false;
+    state.isTyping = false;
+    closeSaveLoad();
+    enterGame();
+    renderScene();
+    showDialogue();
+  } catch(e) {}
+}
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'Enter') {
+    if (state.currentScreen === 'game' && !state.showChoices) {
+      handleTextBoxClick();
+    }
+  }
+  if (e.code === 'Escape') {
+    if ($('settings-screen').classList.contains('active')) closeSettings();
+    else if ($('save-load-ui').classList.contains('active')) closeSaveLoad();
+    else if ($('gallery-screen').classList.contains('active')) closeGallery();
+    else if (state.currentScreen === 'game') toggleSettings();
+  }
+});
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
